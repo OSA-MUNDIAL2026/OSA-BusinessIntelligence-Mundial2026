@@ -1,0 +1,1 @@
+# OSA-BusinessIntelligence-Mundial2026
