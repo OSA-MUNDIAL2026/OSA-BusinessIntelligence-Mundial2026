@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OSA Mundial 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#0D1B3E;--gold:#B8924A;--sky:#5BA3C9;--skylt:#C8E8F5;--bg:#F2F4F8;--surface:#fff;--border:rgba(13,27,62,0.12);--text:#0D1B3E;--text2:#4A5568;--r:10px;--telefe:#2563eb;--tyc:#16a34a;--tvp:#5BA3C9}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+header{background:var(--navy);padding:0 2rem;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.2)}
+.hdr-logo{height:44px;width:auto;object-fit:contain}
+.hdr-mundial{text-align:right}
+.hdr-mundial-label{font-size:10px;color:var(--skylt);letter-spacing:0.1em;text-transform:uppercase;font-weight:700}
+.hdr-mundial-val{font-size:16px;font-weight:800;color:var(--gold);letter-spacing:0.04em;text-transform:uppercase}
+.filters-bar{background:var(--surface);border-bottom:.5px solid var(--border);padding:10px 2rem;display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;position:sticky;top:64px;z-index:99}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);height:13px;display:flex;align-items:center}
+.fg select,.fg input[type=text]{padding:0 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--navy);font-size:12px;font-weight:600;outline:none;cursor:pointer;min-width:130px;height:34px}
+.fg input[type=date]{padding:0 8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--navy);font-size:12px;font-weight:600;outline:none;height:34px;min-width:126px}
+.date-range{display:flex;align-items:center;gap:6px;height:34px}
+.date-range span{font-size:11px;color:var(--text2)}
+.tabbar{background:var(--navy);display:flex;padding:0 2rem;gap:2px}
+.tab{padding:10px 22px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.45);background:transparent;border:none;cursor:pointer;border-bottom:3px solid transparent;transition:all .15s}
+.tab:hover{color:#fff}
+.tab.on{background:var(--sky);color:#fff;border-bottom-color:var(--sky)}
+.container{max-width:1200px;margin:0 auto;padding:1.5rem 2rem}
+.slbl{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;margin-top:1.25rem;display:flex;align-items:center;gap:8px}
+.slbl::after{content:"";flex:1;height:.5px;background:var(--border)}
+.canal-block{margin-bottom:1.25rem}
+.canal-header{display:inline-flex;align-items:center;gap:8px;margin-bottom:8px;padding:5px 12px;border-radius:6px;color:#fff;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.canal-header.telefe{background:var(--telefe)}
+.canal-header.tyc{background:var(--tyc)}
+.canal-header.tvp{background:var(--tvp)}
+.lider-badge{background:rgba(0,0,0,0.25);color:#fff;font-size:8px;font-weight:800;padding:2px 7px;border-radius:10px}
+.bn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.bn-card{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:1rem 1.1rem}
+.bn-card.ldr{border:2px solid var(--gold);background:#fffbf5}
+.bn-metric{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-bottom:4px}
+.bn-val{font-size:34px;font-weight:800;color:var(--navy);line-height:1}
+.bn-unit{font-size:12px;color:var(--gold);font-weight:700}
+.bn-na{font-size:10px;color:var(--text2);margin-top:6px;font-style:italic}
+.share-note{font-size:10px;color:var(--text2);font-style:italic;margin-top:10px;padding:7px 12px;background:var(--bg);border-radius:6px;border-left:3px solid var(--gold)}
+.marcas-subfiltro{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:10px 14px;margin-bottom:1.25rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.subfiltro-lbl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text2)}
+.marcas-bn{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.25rem}
+.mbn-card{background:var(--navy);border-radius:var(--r);padding:1rem 1.1rem}
+.mbn-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--skylt);margin-bottom:4px}
+.mbn-val{font-size:38px;font-weight:800;color:#fff;line-height:1}
+.ranking-card{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:1rem 1.25rem;margin-bottom:1.25rem}
+.rank-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:.5px solid var(--border)}
+.rank-row:last-child{border-bottom:none}
+.rank-num{font-size:18px;font-weight:800;color:var(--gold);min-width:26px}
+.rank-info{flex:1}
+.rank-marca{font-size:13px;font-weight:700;color:var(--navy)}
+.rank-anunc{font-size:10px;color:var(--text2)}
+.rank-bar-wrap{flex:2;height:5px;background:var(--bg);border-radius:3px;overflow:hidden}
+.rank-bar{height:100%;border-radius:3px;background:var(--gold)}
+.rank-stats{text-align:right;min-width:110px}
+.rank-grp{font-size:14px;font-weight:800;color:var(--navy)}
+.rank-ins{font-size:10px;color:var(--text2);margin-top:2px}
+.pie-card{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:1rem 1.25rem;margin-bottom:1.25rem}
+.pie-wrap{position:relative;height:220px;max-width:320px;margin:0 auto}
+.loading{display:flex;align-items:center;justify-content:center;min-height:50vh;flex-direction:column;gap:14px;color:var(--text2)}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-msg{background:#fee2e2;border:.5px solid #fca5a5;border-radius:var(--r);padding:1.5rem;color:#7f1d1d;text-align:center;margin:2rem 0;font-size:13px}
+.empty-msg{text-align:center;padding:3rem;color:var(--text2);font-size:14px}
+.partido-search-wrap{position:relative}
+.partido-dropdown{position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:200;max-height:200px;overflow-y:auto;display:none}
+.partido-dropdown.show{display:block}
+.partido-option{padding:8px 12px;font-size:12px;cursor:pointer;color:var(--navy)}
+.partido-option:hover,.partido-option.selected{background:var(--navy);color:#fff}
+.selected-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.tag{background:var(--navy);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+footer{text-align:center;padding:1.25rem;font-size:10px;color:var(--text2);border-top:.5px solid var(--border);margin-top:1rem}
+@media(max-width:768px){header{padding:0 1rem}.filters-bar{padding:10px 1rem}.container{padding:1rem}.bn-grid{grid-template-columns:1fr}.marcas-bn{grid-template-columns:1fr}.tabbar{padding:0 1rem}}
+</style>
+</head>
+<body>
+<header>
+  <img class="hdr-logo" src="data:image/png;base64,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" alt="OSA One Step Ahead">
+  <div class="hdr-mundial">
+    <div class="hdr-mundial-label">Seguimiento</div>
+    <div class="hdr-mundial-val">Mundial 2026</div>
+  </div>
+</header>
+<div class="filters-bar">
+  <div class="fg">
+    <label>Rango de fechas</label>
+    <div class="date-range">
+      <input type="date" id="fecha-desde">
+      <span>al</span>
+      <input type="date" id="fecha-hasta">
+    </div>
+  </div>
+  <div class="fg">
+    <label>Fase</label>
+    <select id="fase-select">
+      <option value="">Todas las fases</option>
+      <option value="GRUPOS">Grupos</option>
+      <option value="DIECISEISAVOS">Dieciseisavos</option>
+      <option value="OCTAVOS">Octavos</option>
+      <option value="CUARTOS">Cuartos</option>
+      <option value="SEMIFINAL">Semifinal</option>
+      <option value="FINAL">Final</option>
+    </select>
+  </div>
+  <div class="fg">
+    <label>Partido</label>
+    <div class="partido-search-wrap">
+      <input type="text" id="partido-search" placeholder="Buscar partido..." autocomplete="off">
+      <div class="partido-dropdown" id="partido-dropdown"></div>
+    </div>
+    <div class="selected-tags" id="selected-tags"></div>
+  </div>
+  <div class="fg">
+    <label>Target</label>
+    <select id="target-select">
+      <option value="Hogares">Hogares</option>
+      <option value="Total Personas">Total Personas</option>
+      <option value="20+">20+</option>
+    </select>
+  </div>
+</div>
+<div class="tabbar">
+  <button class="tab on" id="tab-btn-audiencia">Audiencia</button>
+  <button class="tab" id="tab-btn-marcas">Marcas</button>
+</div>
+<div class="container">
+  <div class="loading" id="loading-state"><div class="spinner"></div><span>Cargando datos...</span></div>
+  <div id="error-state" style="display:none"></div>
+  <div id="main-content" style="display:none">
+    <div id="tab-audiencia"></div>
+    <div id="tab-marcas" style="display:none">
+      <div class="marcas-subfiltro">
+        <span class="subfiltro-lbl">Sector</span>
+        <select id="segmento-select">
+          <option value="">Todos los sectores</option>
+          <option value="ALIMENTACION">Alimentación</option>
+          <option value="APUESTAS Y LOTERIAS">Apuestas y loterías</option>
+          <option value="ASOC POLITICAS Y CIVILES">Asoc. políticas y civiles</option>
+          <option value="AUTOMOTRIZ">Automotriz</option>
+          <option value="BANCOS Y FINANZAS">Bancos y finanzas</option>
+          <option value="BEBIDAS ALCOHOLICAS">Bebidas alcohólicas</option>
+          <option value="BEBIDAS SIN ALCOHOL">Bebidas sin alcohol</option>
+          <option value="CALZADO E INDUMENTARIA">Calzado e indumentaria</option>
+          <option value="COMERCIO Y RETAIL">Comercio y retail</option>
+          <option value="COMUNICACIONES">Comunicaciones</option>
+          <option value="ENERGIA Y MINERIA">Energía y minería</option>
+          <option value="FARMACEUTICA">Farmacéutica</option>
+          <option value="HIGIENE Y BELLEZA">Higiene y belleza</option>
+          <option value="LIMPIEZA Y DESINFECCION">Limpieza y desinfección</option>
+          <option value="MEDIOS">Medios</option>
+          <option value="SALUD Y SERVICIOS PERSONALES">Salud y servicios personales</option>
+          <option value="TRANSPORTE">Transporte</option>
+          <option value="TURISMO">Turismo</option>
+          <option value="VARIOS">Varios</option>
+        </select>
+        <span class="subfiltro-lbl" style="margin-left:12px">Marca</span>
+        <div style="position:relative">
+          <input type="text" id="marca-search" placeholder="Buscar marca..." autocomplete="off" style="padding:0 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--navy);font-size:12px;font-weight:600;outline:none;height:34px;min-width:160px">
+          <div id="marca-dropdown" style="position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:200;max-height:200px;overflow-y:auto;display:none"></div>
+        </div>
+        <div id="selected-marcas" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px"></div>
+      </div>
+      <div id="marcas-content"></div>
+    </div>
+  </div>
+</div>
+<footer>Fuente: Kantar IBOPE Media<br>&copy; 2026 OSA. Prohibida su copia, difusi&oacute;n o uso. Datos actualizados diariamente.</footer>
+<script>
+var SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRk-5uM_irUx6DNa8jEeL24hYdeyJhHamNZWAEqwBSLcWj8EwINeEnWlNzP5VlwiubzMdnih5iKlfJc/pub?output=csv';
+
+var allData = [];
+var allDataMarcas = [];
+var selectedPartidos = [];
+var selectedMarcas = [];
+var SHEET_MARCAS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRk-5uM_irUx6DNa8jEeL24hYdeyJhHamNZWAEqwBSLcWj8EwINeEnWlNzP5VlwiubzMdnih5iKlfJc/pub?gid=277085908&single=true&output=csv';
+var pieChart = null;
+var activeTab = 'audiencia';
+
+function pn(s) {
+  if (!s || String(s).trim() === '' || String(s).trim() === '.') return null;
+  var clean = String(s).trim();
+  // Handle thousands separator (dot) and decimal comma: "1.569,5" -> "1569.5"
+  if (clean.indexOf(',') !== -1 && clean.indexOf('.') !== -1) {
+    clean = clean.replace(/\./g,'').replace(',','.');
+  } else {
+    clean = clean.replace(',','.');
+  }
+  var v = parseFloat(clean);
+  return isNaN(v) ? null : v;
+}
+
+function toInputDate(s) {
+  if (!s) return '';
+  var p = s.split('/');
+  return p.length === 3 ? p[2]+'-'+p[1]+'-'+p[0] : s;
+}
+
+function fromInputDate(s) {
+  if (!s) return null;
+  var p = s.split('-');
+  return p.length === 3 ? p[2]+'/'+p[1]+'/'+p[0] : s;
+}
+
+document.getElementById('fecha-desde').addEventListener('change', onFechaChange);
+document.getElementById('fecha-hasta').addEventListener('change', onFechaChange);
+document.getElementById('fase-select').addEventListener('change', onFaseChange);
+document.getElementById('target-select').addEventListener('change', applyFilters);
+document.getElementById('segmento-select').addEventListener('change', function(){ selectedMarcas=[]; renderSelectedMarcas(); updateMarcaDropdown(); renderMarcas(); });
+
+var marcaInput = document.getElementById('marca-search');
+marcaInput.addEventListener('input', onMarcaSearch);
+marcaInput.addEventListener('focus', showMarcaDD);
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#marca-search') && !e.target.closest('#marca-dropdown'))
+    document.getElementById('marca-dropdown').style.display = 'none';
+});
+
+document.getElementById('marca-dropdown').addEventListener('click', function(e) {
+  var opt = e.target.closest('.marca-option');
+  if (opt) toggleMarca(opt.dataset.marca);
+});
+
+document.getElementById('selected-marcas').addEventListener('click', function(e) {
+  var btn = e.target.closest('.marca-tag-remove');
+  if (btn) removeMarca(btn.dataset.marca);
+});
+document.getElementById('tab-btn-audiencia').addEventListener('click', function(){ switchTab('audiencia'); });
+document.getElementById('tab-btn-marcas').addEventListener('click', function(){ switchTab('marcas'); });
+
+var psInput = document.getElementById('partido-search');
+psInput.addEventListener('input', onPartidoSearch);
+psInput.addEventListener('focus', showPartidoDD);
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.partido-search-wrap'))
+    document.getElementById('partido-dropdown').classList.remove('show');
+});
+
+document.getElementById('partido-dropdown').addEventListener('click', function(e) {
+  var opt = e.target.closest('.partido-option');
+  if (opt) togglePartido(opt.dataset.partido);
+});
+
+document.getElementById('selected-tags').addEventListener('click', function(e) {
+  var btn = e.target.closest('.tag-remove');
+  if (btn) removeTag(btn.dataset.partido);
+});
+
+
+function getMarcasForSector() {
+  var seg = document.getElementById('segmento-select').value;
+  var desde = fromInputDate(document.getElementById('fecha-desde').value);
+  var hasta  = fromInputDate(document.getElementById('fecha-hasta').value);
+  var fase   = document.getElementById('fase-select').value;
+  var set = {};
+  allDataMarcas.filter(function(d){
+    if (desde && d.fecha < desde) return false;
+    if (hasta && d.fecha > hasta) return false;
+    if (fase && d.fase.indexOf(fase.toUpperCase()) < 0) return false;
+    if (seg && (d.sector||'').toUpperCase().indexOf(seg.toUpperCase()) < 0) return false;
+    return true;
+  }).forEach(function(d){ if(d.marca) set[d.marca]=true; });
+  return Object.keys(set).sort();
+}
+
+function getSectorForMarca(marca) {
+  var found = allDataMarcas.find(function(d){ return d.marca === marca; });
+  return found ? found.sector : '';
+}
+
+function updateMarcaDropdown() {
+  var q = document.getElementById('marca-search').value.toUpperCase();
+  var list = getMarcasForSector().filter(function(m){
+    return m.toUpperCase().indexOf(q) >= 0 && selectedMarcas.indexOf(m) < 0;
+  });
+  var dd = document.getElementById('marca-dropdown');
+  dd.innerHTML = '';
+  list.slice(0,30).forEach(function(m){
+    var div = document.createElement('div');
+    div.className = 'marca-option';
+    div.textContent = m;
+    div.dataset.marca = m;
+    div.style.cssText = 'padding:8px 12px;font-size:12px;cursor:pointer;color:var(--navy)';
+    div.addEventListener('mouseenter', function(){ this.style.background='var(--navy)';this.style.color='#fff'; });
+    div.addEventListener('mouseleave', function(){ this.style.background='';this.style.color='var(--navy)'; });
+    dd.appendChild(div);
+  });
+}
+
+function onMarcaSearch() {
+  updateMarcaDropdown();
+  document.getElementById('marca-dropdown').style.display = 'block';
+}
+
+function showMarcaDD() {
+  updateMarcaDropdown();
+  document.getElementById('marca-dropdown').style.display = 'block';
+}
+
+function toggleMarca(m) {
+  if (selectedMarcas.indexOf(m) < 0) selectedMarcas.push(m);
+  document.getElementById('marca-search').value = '';
+  document.getElementById('marca-dropdown').style.display = 'none';
+  // Auto-set sector if only one sector for this marca
+  var sec = getSectorForMarca(m);
+  var segSelect = document.getElementById('segmento-select');
+  if (sec && !segSelect.value) {
+    for (var i=0;i<segSelect.options.length;i++){
+      if (segSelect.options[i].value === sec) { segSelect.value = sec; break; }
+    }
+  }
+  renderSelectedMarcas();
+  renderMarcas();
+}
+
+function removeMarca(m) {
+  var idx = selectedMarcas.indexOf(m);
+  if(idx>=0){ selectedMarcas.splice(idx,1); renderSelectedMarcas(); renderMarcas(); }
+}
+
+function renderSelectedMarcas() {
+  var el = document.getElementById('selected-marcas');
+  el.innerHTML = '';
+  selectedMarcas.forEach(function(m){
+    var span = document.createElement('span');
+    span.style.cssText = 'background:var(--gold);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;display:inline-flex;align-items:center;gap:4px;cursor:pointer';
+    span.textContent = m + ' ';
+    var x = document.createElement('span');
+    x.textContent = 'x'; x.className = 'marca-tag-remove'; x.dataset.marca = m;
+    span.appendChild(x); el.appendChild(span);
+  });
+}
+
+
+function loadMarcasData() {
+  Papa.parse(SHEET_MARCAS_URL, {
+    download: true, skipEmptyLines: true,
+    complete: function(r) {
+      var hdrIdx = -1;
+      for (var i = 0; i < r.data.length; i++) {
+        var row = r.data[i];
+        for (var j = 0; j < row.length; j++) {
+          if (String(row[j]).trim().toUpperCase() === 'MARCA') { hdrIdx = i; break; }
+        }
+        if (hdrIdx >= 0) break;
+      }
+      if (hdrIdx < 0) { applyFilters(); return; }
+      allDataMarcas = [];
+      selectedMarcas = [];
+      for (var i = hdrIdx+1; i < r.data.length; i++) {
+        var row = r.data[i];
+        if (!row[3] || String(row[3]).trim() === '') continue;
+        allDataMarcas.push({
+          fecha:      String(row[0]||'').trim(),
+          partido:    String(row[1]||'').trim(),
+          anunciante: String(row[2]||'').trim(),
+          marca:      String(row[3]||'').trim(),
+          canal:      String(row[4]||'').trim(),
+          tipo:       String(row[5]||'').trim(),
+          sector:     String(row[6]||'').trim(),
+          jornada:    String(row[7]||'').trim(),
+          fase:       String(row[8]||'').trim().toUpperCase(),
+          grp_h:      pn(row[9]),
+          grp_p:      pn(row[10]),
+          grp_20:     pn(row[11]),
+          inserciones:pn(row[12]),
+          duracion:   pn(row[13])||5400
+        });
+      }
+      applyFilters();
+    },
+    error: function(){ applyFilters(); }
+  });
+}
+
+function loadData() {
+  Papa.parse(SHEET_URL, {
+    download: true, skipEmptyLines: true,
+    complete: function(r) {
+      try {
+        var hdrIdx = -1;
+        for (var i = 0; i < r.data.length; i++) {
+          var row = r.data[i];
+          var hp = false, hc = false;
+          for (var j = 0; j < row.length; j++) {
+            var c = String(row[j]).trim().toUpperCase();
+            if (c === 'PARTIDO') hp = true;
+            if (c === 'CANAL') hc = true;
+          }
+          if (hp && hc) { hdrIdx = i; break; }
+        }
+        if (hdrIdx < 0) { showError('No se encontro PARTIDO y CANAL en el Sheet.'); return; }
+        allData = [];
+        for (var i = hdrIdx+1; i < r.data.length; i++) {
+          var row = r.data[i];
+          if (!row[1] || String(row[1]).trim() === '') continue;
+          allData.push({
+            fecha:   String(row[0]||'').trim(),
+            partido: String(row[1]||'').trim(),
+            hora:    String(row[2]||'').trim(),
+            canal:   String(row[3]||'').trim(),
+            jornada: String(row[4]||'').trim(),
+            fase:    String(row[5]||'').trim().toUpperCase(),
+            h_rat:   pn(row[6]),
+            h_shr:   pn(row[7]),
+            h_alc:   pn(row[8]),
+            p_rat:   pn(row[9]),
+            p_shr:   pn(row[10]),
+            p_alc:   pn(row[11]),
+            p_cov:   pn(row[12]),
+            p20_rat: pn(row[13]),
+            p20_shr: pn(row[14]),
+            p20_alc: pn(row[15]),
+            p20_cov: pn(row[16]),
+            duracion: pn(row[17]) || 5400
+          });
+        }
+        if (!allData.length) { showError('No se encontraron datos en el Sheet.'); return; }
+        var fechas = allData.map(function(d){ return d.fecha; }).filter(Boolean).sort();
+        var uniq = fechas.filter(function(v,i,a){ return a.indexOf(v)===i; });
+        if (uniq.length) {
+          document.getElementById('fecha-desde').value = toInputDate(uniq[0]);
+          document.getElementById('fecha-hasta').value = toInputDate(uniq[uniq.length-1]);
+        }
+        document.getElementById('loading-state').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+        updatePartidoDropdown();
+        loadMarcasData();
+      } catch(e) { showError('Error: ' + e.message); }
+    },
+    error: function(){ showError('No se pudo cargar el Sheet.'); }
+  });
+}
+
+function onFechaChange() { updatePartidoDropdown(); applyFilters(); }
+function onFaseChange()  { updatePartidoDropdown(); applyFilters(); }
+
+function getBaseFiltered() {
+  var desde = fromInputDate(document.getElementById('fecha-desde').value);
+  var hasta  = fromInputDate(document.getElementById('fecha-hasta').value);
+  var fase   = document.getElementById('fase-select').value;
+  return allData.filter(function(d) {
+    if (desde && d.fecha < desde) return false;
+    if (hasta && d.fecha > hasta) return false;
+    if (fase && d.fase.indexOf(fase.toUpperCase()) < 0) return false;
+    return true;
+  });
+}
+
+function getFiltered() {
+  var base = getBaseFiltered();
+  if (selectedPartidos.length === 0) return base;
+  return base.filter(function(d) {
+    for (var i = 0; i < selectedPartidos.length; i++) {
+      if (d.partido.toUpperCase().indexOf(selectedPartidos[i].toUpperCase()) >= 0) return true;
+    }
+    return false;
+  });
+}
+
+function updatePartidoDropdown() {
+  var base = getBaseFiltered();
+  var set = {};
+  base.forEach(function(d){ if(d.partido) set[d.partido]=true; });
+  selectedPartidos = selectedPartidos.filter(function(p){ return set[p]; });
+  renderTags();
+  renderDD(Object.keys(set).sort());
+}
+
+function applyFilters() {
+  if (activeTab === 'audiencia') renderAudiencia();
+  else renderMarcas();
+}
+
+function matchCanal(d, alts) {
+  var cn = d.canal.toUpperCase();
+  for (var i = 0; i < alts.length; i++) {
+    if (cn.indexOf(alts[i]) >= 0) return true;
+  }
+  return false;
+}
+
+function getMetrics(d, target) {
+  if (target === 'Hogares')        return { rat: d.h_rat,   shr: d.h_shr,   cov: null    };
+  if (target === 'Total Personas') return { rat: d.p_rat,   shr: d.p_shr,   cov: d.p_cov };
+  if (target === '20+')            return { rat: d.p20_rat, shr: d.p20_shr, cov: d.p20_cov };
+  return { rat: null, shr: null, cov: null };
+}
+
+// Weighted average by duracion
+function weightedAvg(rows, valFn) {
+  var sumVD = 0, sumD = 0;
+  rows.forEach(function(d) {
+    var v = valFn(d);
+    if (v !== null && d.duracion) { sumVD += v * d.duracion; sumD += d.duracion; }
+  });
+  return sumD > 0 ? sumVD / sumD : null;
+}
+
+function renderAudiencia() {
+  var data = getFiltered();
+  var target = document.getElementById('target-select').value;
+  var hasCov = (target === 'Total Personas' || target === '20+');
+
+  var canales = [
+    { key: 'Telefe',          alts: ['TELEFE','TLF'],                              cls: 'telefe' },
+    { key: 'TyC Sports',      alts: ['TYC','TYC SPORTS'],                          cls: 'tyc'    },
+    { key: 'TV Pública', alts: ['TVP','TV PUBLICA','TELEVISION','TV PÚ'], cls: 'tvp'    }
+  ];
+
+  var leaderIdx = -1, leaderRat = -1;
+  for (var ci = 0; ci < canales.length; ci++) {
+    var alts = canales[ci].alts;
+    var rows = data.filter(function(d){ return matchCanal(d, alts); });
+    var avg = weightedAvg(rows, function(d){ return getMetrics(d, target).rat; });
+    if (avg !== null && avg > leaderRat) { leaderRat = avg; leaderIdx = ci; }
+  }
+
+  if (!data.length) {
+    document.getElementById('tab-audiencia').innerHTML = '<div class="empty-msg">Sin datos para los filtros seleccionados.</div>';
+    return;
+  }
+
+  var html = '<div class="slbl">Rating &middot; Share &middot; Covisionado por señal</div>';
+
+  for (var ci = 0; ci < canales.length; ci++) {
+    var c = canales[ci];
+    var isLdr = (ci === leaderIdx);
+    var alts = c.alts;
+    var rows = data.filter(function(d){ return matchCanal(d, alts); });
+
+    var avgRat = weightedAvg(rows, function(d){ return getMetrics(d, target).rat; });
+    var avgShr = weightedAvg(rows, function(d){ return getMetrics(d, target).shr; });
+    var avgCov = weightedAvg(rows, function(d){ return getMetrics(d, target).cov; });
+
+    html += '<div class="canal-block">';
+    html += '<div><div class="canal-header '+c.cls+'">'+c.key+(isLdr?' <span class="lider-badge">LÍDER</span>':'')+'</div></div>';
+    html += '<div class="bn-grid">';
+    html += '<div class="bn-card'+(isLdr?' ldr':'')+'"><div class="bn-metric">Rating%</div><div class="bn-val">'+(avgRat!==null?avgRat.toFixed(2):'&mdash;')+'<span class="bn-unit">%</span></div></div>';
+    html += '<div class="bn-card"><div class="bn-metric">Share%</div><div class="bn-val">'+(avgShr!==null?avgShr.toFixed(1):'&mdash;')+'<span class="bn-unit">%</span></div></div>';
+    html += '<div class="bn-card"><div class="bn-metric">Covisionado%</div>';
+    if (hasCov) {
+      html += '<div class="bn-val">'+(avgCov!==null?avgCov.toFixed(1):'&mdash;')+'<span class="bn-unit">%</span></div>';
+    } else {
+      html += '<div class="bn-val" style="font-size:18px;color:var(--text2)">&mdash;</div><div class="bn-na">Solo en Total Personas y 20+</div>';
+    }
+    html += '</div></div></div>';
+  }
+  html += '<div class="share-note">* Rating y Covisionado calculados como promedio ponderado por duración. Share sobre el total televisión.</div>';
+  document.getElementById('tab-audiencia').innerHTML = html;
+}
+
+function renderMarcas() {
+  var seg   = document.getElementById('segmento-select').value;
+  var desde = fromInputDate(document.getElementById('fecha-desde').value);
+  var hasta = fromInputDate(document.getElementById('fecha-hasta').value);
+  var fase  = document.getElementById('fase-select').value;
+  var target = document.getElementById('target-select').value;
+
+  var mData = allDataMarcas.filter(function(d) {
+    if (desde && d.fecha < desde) return false;
+    if (hasta && d.fecha > hasta) return false;
+    if (fase && d.fase.indexOf(fase.toUpperCase()) < 0) return false;
+    if (!d.marca) return false;
+    if (seg && (d.sector||'').toUpperCase().indexOf(seg.toUpperCase()) < 0) return false;
+    if (selectedMarcas.length > 0 && selectedMarcas.indexOf(d.marca) < 0) return false;
+    if (selectedPartidos.length > 0) {
+      var match = false;
+      for (var i=0;i<selectedPartidos.length;i++) {
+        if ((d.partido||'').toUpperCase().indexOf(selectedPartidos[i].toUpperCase()) >= 0){match=true;break;}
+      }
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  // Get GRP column based on target
+  function getGRP(d) {
+    if (target === 'Hogares') return d.grp_h;
+    if (target === 'Total Personas') return d.grp_p;
+    if (target === '20+') return d.grp_20;
+    return d.grp_h;
+  }
+
+  var mm = {};
+  mData.forEach(function(r){
+    if(!r.marca)return;
+    if(!mm[r.marca])mm[r.marca]={marca:r.marca,anunciante:r.anunciante||'',grp:0,ins:0,tanda:0,menciones:0};
+    mm[r.marca].grp+=(getGRP(r)||0);
+    mm[r.marca].ins+=(r.inserciones||0);
+    var tipo = (r.tipo||'').toUpperCase();
+    if(tipo.indexOf('MENC')>=0) mm[r.marca].menciones+=(r.inserciones||0);
+    else mm[r.marca].tanda+=(r.inserciones||0);
+  });
+  var sorted=Object.values(mm).sort(function(a,b){return b.grp-a.grp;});
+  var top10=sorted.slice(0,10), maxG=top10[0]?top10[0].grp:1;
+  var totG=sorted.reduce(function(s,m){return s+m.grp;},0);
+  var totI=sorted.reduce(function(s,m){return s+m.ins;},0);
+  var totT=sorted.reduce(function(s,m){return s+m.tanda;},0);
+  var totM=sorted.reduce(function(s,m){return s+m.menciones;},0);
+
+  var html='<div class="slbl">Resumen del período</div><div class="marcas-bn">';
+  html+='<div class="mbn-card"><div class="mbn-label">GRPs totales</div><div class="mbn-val">'+totG.toFixed(0)+'</div></div>';
+  html+='<div class="mbn-card"><div class="mbn-label">Inserciones totales</div><div class="mbn-val">'+totI.toFixed(0)+'</div></div>';
+  html+='<div class="mbn-card"><div class="mbn-label">Marcas activas</div><div class="mbn-val">'+sorted.length+'</div></div></div>';
+  html+='<div class="slbl">Top 10 marcas por GRPs</div><div class="ranking-card">';
+  if(!top10.length){
+    html+='<div class="empty-msg" style="padding:1rem 0">Sin datos de marcas en el Sheet.</div>';
+  } else {
+    top10.forEach(function(m,i){
+      html+='<div class="rank-row"><span class="rank-num">'+String(i+1).padStart(2,'0')+'</span>';
+      html+='<div class="rank-info"><div class="rank-marca">'+m.marca+'</div><div class="rank-anunc">'+m.anunciante+'</div></div>';
+      html+='<div class="rank-bar-wrap"><div class="rank-bar" style="width:'+Math.round(m.grp/maxG*100)+'%"></div></div>';
+      html+='<div class="rank-stats"><div class="rank-grp">'+m.grp.toFixed(1)+' GRPs</div><div class="rank-ins">'+m.ins.toFixed(0)+' inserciones</div></div></div>';
+    });
+  }
+  html+='</div><div class="slbl">Distribución de formatos</div>';
+  html+='<div class="pie-card"><div style="font-size:13px;font-weight:800;text-transform:uppercase;color:var(--navy);margin-bottom:1rem">Tanda vs Menciones</div><div class="pie-wrap"><canvas id="pieChart"></canvas></div></div>';
+  document.getElementById('marcas-content').innerHTML = html;
+  setTimeout(function(){
+    var ctx=document.getElementById('pieChart'); if(!ctx)return;
+    if(pieChart)pieChart.destroy();
+    pieChart=new Chart(ctx.getContext('2d'),{
+      type:'doughnut',
+      data:{labels:['Tanda','Menciones'],datasets:[{data:[totT||0,totM||0],backgroundColor:['#0D1B3E','#B8924A'],borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:true,position:'bottom',labels:{font:{size:11},color:'#4A5568',boxWidth:10,padding:12}}}}
+    });
+  },100);
+}
+
+function getAllPartidos() {
+  return getBaseFiltered().reduce(function(acc,d){
+    if(d.partido && acc.indexOf(d.partido)<0) acc.push(d.partido);
+    return acc;
+  },[]).sort();
+}
+
+function onPartidoSearch() {
+  var q = document.getElementById('partido-search').value.toUpperCase();
+  renderDD(getAllPartidos().filter(function(p){ return p.toUpperCase().indexOf(q)>=0; }));
+  document.getElementById('partido-dropdown').classList.add('show');
+}
+
+function showPartidoDD() {
+  renderDD(getAllPartidos());
+  document.getElementById('partido-dropdown').classList.add('show');
+}
+
+function renderDD(list) {
+  var dd = document.getElementById('partido-dropdown');
+  dd.innerHTML = '';
+  list.slice(0,30).forEach(function(p){
+    var div = document.createElement('div');
+    div.className = 'partido-option'+(selectedPartidos.indexOf(p)>=0?' selected':'');
+    div.textContent = p;
+    div.dataset.partido = p;
+    dd.appendChild(div);
+  });
+}
+
+function togglePartido(p) {
+  var idx = selectedPartidos.indexOf(p);
+  if(idx>=0) selectedPartidos.splice(idx,1);
+  else selectedPartidos.push(p);
+  document.getElementById('partido-search').value = '';
+  document.getElementById('partido-dropdown').classList.remove('show');
+  renderTags(); applyFilters();
+}
+
+function renderTags() {
+  var el = document.getElementById('selected-tags');
+  el.innerHTML = '';
+  selectedPartidos.forEach(function(p){
+    var span = document.createElement('span');
+    span.className = 'tag';
+    span.textContent = p+' ';
+    var x = document.createElement('span');
+    x.textContent = 'x'; x.className = 'tag-remove'; x.dataset.partido = p;
+    span.appendChild(x); el.appendChild(span);
+  });
+}
+
+function removeTag(p) {
+  var idx = selectedPartidos.indexOf(p);
+  if(idx>=0){ selectedPartidos.splice(idx,1); renderTags(); applyFilters(); }
+}
+
+function switchTab(name) {
+  activeTab = name;
+  document.getElementById('tab-btn-audiencia').classList.toggle('on', name==='audiencia');
+  document.getElementById('tab-btn-marcas').classList.toggle('on', name==='marcas');
+  document.getElementById('tab-audiencia').style.display = name==='audiencia'?'block':'none';
+  document.getElementById('tab-marcas').style.display = name==='marcas'?'block':'none';
+  applyFilters();
+}
+
+function showError(msg) {
+  document.getElementById('loading-state').style.display = 'none';
+  document.getElementById('error-state').style.display = 'block';
+  document.getElementById('error-state').innerHTML = '<div class="error-msg">'+msg+'</div>';
+}
+
+loadData();
+</script>
+</body>
+</html>
