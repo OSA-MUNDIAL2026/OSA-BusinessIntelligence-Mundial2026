@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OSA Mundial 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#0D1B3E;--gold:#B8924A;--sky:#5BA3C9;--skylt:#C8E8F5;--bg:#F2F4F8;--surface:#fff;--border:rgba(13,27,62,0.12);--text:#0D1B3E;--text2:#4A5568;--r:10px}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+header{background:var(--navy);padding:0 2rem;height:62px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.2)}
+.hdr-logo{height:40px;width:auto;object-fit:contain}
+.hdr-right{text-align:right}
+.hdr-lbl{font-size:9px;color:var(--skylt);letter-spacing:0.1em;text-transform:uppercase;font-weight:700}
+.hdr-val{font-size:15px;font-weight:800;color:var(--gold);letter-spacing:0.04em;text-transform:uppercase}
+.main-tabbar{background:var(--navy);border-top:1px solid rgba(255,255,255,0.08);display:flex;padding:0 2rem;gap:2px}
+.main-tab{padding:10px 24px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.45);background:transparent;border:none;cursor:pointer;border-bottom:3px solid transparent;transition:all .15s}
+.main-tab:hover{color:#fff}
+.main-tab.on{background:var(--sky);color:#fff;border-bottom-color:var(--sky)}
+.phase-bar{background:var(--surface);border-bottom:.5px solid var(--border);padding:10px 2rem;position:sticky;top:62px;z-index:99}
+.phase-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.phase-buttons{display:flex;gap:6px;flex-wrap:wrap}
+.phase-btn{padding:5px 14px;border-radius:20px;border:1px solid var(--border);background:var(--bg);color:var(--text2);font-size:11px;font-weight:700;cursor:pointer;transition:all .15s}
+.phase-btn:hover{border-color:var(--navy);color:var(--navy)}
+.phase-btn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.target-select{padding:5px 14px;border-radius:20px;border:1px solid var(--border);background:var(--bg);color:var(--navy);font-size:11px;font-weight:700;outline:none;cursor:pointer}
+.week-buttons{display:flex;gap:6px;margin-top:4px}
+.week-btn{padding:4px 12px;border-radius:20px;border:1px solid var(--gold);background:transparent;color:var(--gold);font-size:11px;font-weight:700;cursor:pointer;transition:all .15s}
+.week-btn.on{background:var(--gold);color:#fff}
+.container{max-width:1300px;margin:0 auto;padding:1.5rem 2rem}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.slbl{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;margin-top:1.25rem;display:flex;align-items:center;gap:8px}
+.slbl::after{content:"";flex:1;height:.5px;background:var(--border)}
+.chart-card{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:1.25rem 1.5rem;margin-bottom:1.25rem}
+.chart-note{font-size:10px;color:var(--text2);font-style:italic;margin-top:8px;padding:6px 10px;background:var(--bg);border-radius:6px;border-left:3px solid var(--gold)}
+.cov-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.cov-badge{background:var(--navy);color:var(--skylt);font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;white-space:nowrap}
+.cov-badge b{color:#fff}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem}
+@media(max-width:900px){.two-col{grid-template-columns:1fr}}
+.bn-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.25rem}
+.bn-card{background:var(--navy);border-radius:var(--r);padding:1rem 1.1rem}
+.bn-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--skylt);margin-bottom:4px}
+.bn-val{font-size:36px;font-weight:800;color:#fff;line-height:1}
+.table-scroll{max-height:360px;overflow-y:auto;border-radius:var(--r);border:.5px solid var(--border)}
+.rank-table{width:100%;border-collapse:collapse;font-size:12px}
+.rank-table th{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);padding:6px 10px;border-bottom:1px solid var(--border);text-align:left;position:sticky;top:0;background:var(--surface)}
+.rank-table td{padding:8px 10px;border-bottom:.5px solid var(--border);color:var(--navy)}
+.rank-table tr:last-child td{border-bottom:none}
+.rank-table tr:hover td{background:var(--bg)}
+.rank-num{font-size:14px;font-weight:800;color:var(--gold)}
+.rank-bar-wrap{height:5px;background:var(--bg);border-radius:3px;overflow:hidden;min-width:60px}
+.rank-bar{height:100%;border-radius:3px;background:var(--gold)}
+.subfiltro-bar{border-top:2px solid var(--border);margin:1.5rem 0 1rem;padding-top:1rem;display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.sfg{display:flex;flex-direction:column;gap:4px}
+.sfg label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text2)}
+.sfg input{padding:0 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--navy);font-size:12px;font-weight:600;outline:none;height:32px;min-width:150px;cursor:pointer}
+.loading{display:flex;align-items:center;justify-content:center;min-height:50vh;flex-direction:column;gap:14px;color:var(--text2)}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-msg{background:#fee2e2;border:.5px solid #fca5a5;border-radius:var(--r);padding:1.5rem;color:#7f1d1d;text-align:center;margin:2rem 0}
+.empty-msg{text-align:center;padding:3rem;color:var(--text2);font-size:14px}
+.dd-wrap{position:relative}
+.dropdown{position:absolute;top:100%;left:0;min-width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:200;max-height:200px;overflow-y:auto;display:none}
+.dropdown.show{display:block}
+.dd-opt{padding:8px 12px;font-size:12px;cursor:pointer;color:var(--navy);white-space:nowrap}
+.dd-opt:hover{background:var(--navy);color:#fff}
+.tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.tag{background:var(--navy);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;display:inline-flex;align-items:center;gap:3px}
+.tag-g{background:var(--gold)}
+footer{text-align:center;padding:1.25rem;font-size:10px;color:var(--text2);border-top:.5px solid var(--border);margin-top:1rem;line-height:1.8}
+</style>
+</head>
+<body>
+<header>
+  <img class="hdr-logo" src="data:image/png;base64,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" alt="OSA">
+  <div class="hdr-right">
+    <div class="hdr-lbl">Seguimiento</div>
+    <div class="hdr-val">Mundial 2026</div>
+  </div>
+</header>
+<div class="main-tabbar">
+  <button class="main-tab on" id="mtab-overview">Overview</button>
+  <button class="main-tab" id="mtab-marcas">Marcas</button>
+</div>
+<div class="phase-bar">
+  <div class="phase-row">
+    <div class="phase-buttons" id="phase-buttons"></div>
+    <select class="target-select" id="target-select">
+      <option value="Hogares">Hogares</option>
+      <option value="Total Personas">Total Personas</option>
+      <option value="20+">20+</option>
+    </select>
+  </div>
+  <div id="week-row" style="display:none">
+    <div class="week-buttons">
+      <button class="week-btn on" id="week-btn-1">Semana 1 (11-14 jun)</button>
+      <button class="week-btn" id="week-btn-2">Semana 2 (15-21 jun)</button>
+      <button class="week-btn" id="week-btn-3">Semana 3 (22-27 jun)</button>
+    </div>
+  </div>
+</div>
+<div class="container">
+  <div class="loading" id="loading-state"><div class="spinner"></div><span>Cargando datos...</span></div>
+  <div id="error-state" style="display:none"></div>
+  <div id="main-content" style="display:none">
+
+    <!-- OVERVIEW -->
+    <div class="tab-panel active" id="panel-overview">
+      <div class="slbl">Rating% promedio ponderado por partido</div>
+      <div class="chart-card">
+        <div style="position:relative;height:320px"><canvas id="chart-rating"></canvas></div>
+        <div class="cov-badges" id="cov-badges"></div>
+        <div class="chart-note">* Rating: promedio ponderado por duración. Covisionado siempre en Total Personas.</div>
+      </div>
+      <div class="slbl">Share por señal por partido (suma 100%)</div>
+      <div class="chart-card">
+        <div style="position:relative;height:300px"><canvas id="chart-share"></canvas></div>
+        <div class="chart-note">* Shr% de cada señal sobre el total TV. Resto = encendido no capturado por las 3 señales.</div>
+      </div>
+    </div>
+
+    <!-- MARCAS -->
+    <div class="tab-panel" id="panel-marcas">
+      <div class="two-col">
+        <div>
+          <div class="slbl">Top sectores por TRPs</div>
+          <div class="chart-card">
+            <div style="position:relative;height:300px"><canvas id="chart-sectores"></canvas></div>
+          </div>
+        </div>
+        <div>
+          <div class="slbl">Top marcas por TRPs</div>
+          <div class="chart-card" style="padding:0">
+            <div class="table-scroll" id="top-marcas-table"></div>
+          </div>
+        </div>
+      </div>
+      <div id="subfiltro-section">
+        <div class="subfiltro-bar">
+          <div class="sfg">
+            <label>Sector (múltiple)</label>
+            <div class="dd-wrap">
+              <input type="text" id="sector-search" placeholder="Buscar sector..." autocomplete="off">
+              <div class="dropdown" id="sector-dropdown"></div>
+            </div>
+            <div class="tags" id="sector-tags"></div>
+          </div>
+          <div class="sfg">
+            <label>Marca (múltiple)</label>
+            <div class="dd-wrap">
+              <input type="text" id="marcasub-search" placeholder="Buscar marca..." autocomplete="off">
+              <div class="dropdown" id="marcasub-dropdown"></div>
+            </div>
+            <div class="tags" id="marcasub-tags"></div>
+          </div>
+        </div>
+        <div class="bn-row" id="bn-row"></div>
+        <div class="slbl">Ranking de marcas</div>
+        <div class="chart-card" style="padding:0">
+          <div class="table-scroll" id="ranking-marcas-table"></div>
+        </div>
+        <div class="slbl">SOV de TRPs por marca por partido (suma 100%)</div>
+        <div class="chart-card">
+          <div style="position:relative;height:340px"><canvas id="chart-sov-partido"></canvas></div>
+          <div class="chart-note">* SOV: share of volume de TRPs entre marcas seleccionadas por partido. Suma 100% por partido.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<footer>Fuente: Kantar IBOPE Media<br>&copy; 2026 OSA. Prohibida su copia, difusión o uso. Datos actualizados diariamente.</footer>
+<script>
+var S1='https://docs.google.com/spreadsheets/d/e/2PACX-1vRk-5uM_irUx6DNa8jEeL24hYdeyJhHamNZWAEqwBSLcWj8EwINeEnWlNzP5VlwiubzMdnih5iKlfJc/pub?gid=0&single=true&output=csv';
+var S2='https://docs.google.com/spreadsheets/d/e/2PACX-1vRk-5uM_irUx6DNa8jEeL24hYdeyJhHamNZWAEqwBSLcWj8EwINeEnWlNzP5VlwiubzMdnih5iKlfJc/pub?gid=277085908&single=true&output=csv';
+
+var audData=[],marcData=[];
+var activeMainTab='overview',activePhase='GRUPOS',activeWeek=1,activeTarget='Hogares';
+var selectedSectores=[],selectedMarcasSub=[];
+var charts={};
+
+var PHASES=[
+  {key:'CEREMONIAS',label:'Ceremonias'},{key:'GRUPOS',label:'Grupos'},
+  {key:'16AVOS',label:'16avos'},{key:'OCTAVOS',label:'Octavos'},
+  {key:'CUARTOS',label:'Cuartos'},{key:'SEMIS',label:'Semis'},
+  {key:'FINAL',label:'Final'},{key:'TOTAL',label:'Totales'}
+];
+
+var SECTORS=['ALIMENTACION','APUESTAS Y LOTERIAS','ASOC POLITICAS Y CIVILES','AUTOMOTRIZ',
+  'BANCOS Y FINANZAS','BEBIDAS ALCOHOLICAS','BEBIDAS SIN ALCOHOL','CALZADO E INDUMENTARIA',
+  'COMERCIO Y RETAIL','COMUNICACIONES','ENERGIA Y MINERIA','FARMACEUTICA',
+  'HIGIENE Y BELLEZA','LIMPIEZA Y DESINFECCION','MEDIOS','SALUD Y SERVICIOS PERSONALES',
+  'TRANSPORTE','TURISMO','VARIOS'];
+
+var CANAL_DEFS=[
+  {key:'TELEFE', label:'Telefe',    color:'#2563eb'},
+  {key:'TYC',    label:'TyC Sports',color:'#16a34a'},
+  {key:'TVP',    label:'TV Pública', color:'#5BA3C9'},
+  {key:'RESTO',  label:'Resto Encendido Total TV', color:'#D1D5DB'}
+];
+
+var MARC_COLORS=['#0D1B3E','#B8924A','#5BA3C9','#16a34a','#dc2626','#7c3aed','#ea580c','#0891b2','#65a30d','#db2777'];
+
+var WEEK_RANGES=[
+  {start:'11/06/2026',end:'14/06/2026'},
+  {start:'15/06/2026',end:'21/06/2026'},
+  {start:'22/06/2026',end:'27/06/2026'}
+];
+
+function pn(s){
+  if(!s||String(s).trim()===''||String(s).trim()==='.') return null;
+  var c=String(s).trim();
+  if(c.indexOf(',')!==-1&&c.indexOf('.')!==-1) c=c.replace(/\./g,'').replace(',','.');
+  else c=c.replace(',','.');
+  var v=parseFloat(c); return isNaN(v)?null:v;
+}
+
+function dateVal(s){
+  if(!s)return 0;
+  var p=s.split('/');
+  return p.length===3?parseInt(p[2])*10000+parseInt(p[1])*100+parseInt(p[0]):0;
+}
+
+function inWeek(fecha,week){
+  var w=WEEK_RANGES[week-1];
+  var v=dateVal(fecha);
+  return v>=dateVal(w.start)&&v<=dateVal(w.end);
+}
+
+function matchCanal(canal,key){
+  var c=canal.toUpperCase();
+  if(key==='TELEFE') return c.indexOf('TELEFE')>=0||c.indexOf('TLF')>=0;
+  if(key==='TYC')    return c.indexOf('TYC')>=0;
+  if(key==='TVP')    return c.indexOf('TVP')>=0||c.indexOf('TV PUBL')>=0||c.indexOf('TELEVISION')>=0;
+  return false;
+}
+
+function buildPhaseButtons(){
+  var el=document.getElementById('phase-buttons');
+  el.innerHTML='';
+  PHASES.forEach(function(p){
+    var btn=document.createElement('button');
+    btn.className='phase-btn'+(p.key===activePhase?' on':'');
+    btn.textContent=p.label; btn.dataset.phase=p.key;
+    el.appendChild(btn);
+  });
+  el.addEventListener('click',function(e){
+    var btn=e.target.closest('.phase-btn');
+    if(!btn)return;
+    activePhase=btn.dataset.phase;
+    document.querySelectorAll('.phase-btn').forEach(function(b){b.classList.toggle('on',b.dataset.phase===activePhase);});
+    document.getElementById('week-row').style.display=activePhase==='GRUPOS'?'block':'none';
+    render();
+  });
+}
+
+document.getElementById('target-select').addEventListener('change',function(){activeTarget=this.value;render();});
+[1,2,3].forEach(function(w){
+  document.getElementById('week-btn-'+w).addEventListener('click',function(){
+    activeWeek=w;
+    [1,2,3].forEach(function(i){document.getElementById('week-btn-'+i).classList.toggle('on',i===w);});
+    render();
+  });
+});
+document.getElementById('mtab-overview').addEventListener('click',function(){switchMain('overview');});
+document.getElementById('mtab-marcas').addEventListener('click',function(){switchMain('marcas');});
+
+function switchMain(name){
+  activeMainTab=name;
+  document.getElementById('mtab-overview').classList.toggle('on',name==='overview');
+  document.getElementById('mtab-marcas').classList.toggle('on',name==='marcas');
+  document.getElementById('panel-overview').classList.toggle('active',name==='overview');
+  document.getElementById('panel-marcas').classList.toggle('active',name==='marcas');
+  render();
+}
+
+// Filter audiencia data by phase/week
+function getAudFiltered(){
+  return audData.filter(function(d){
+    if(activePhase==='TOTAL') return true;
+    // Match phase loosely
+    var df=d.fase.toUpperCase();
+    var pf=activePhase.toUpperCase();
+    if(pf==='16AVOS') return df.indexOf('16')>=0||df.indexOf('DIECISEIS')>=0||df.indexOf('DIECISÉIS')>=0;
+    if(df.indexOf(pf)<0) return false;
+    if(activePhase==='GRUPOS') return inWeek(d.fecha,activeWeek);
+    return true;
+  });
+}
+
+// Filter marca data by phase/week
+function getMarcFiltered(secs,marcas){
+  return marcData.filter(function(d){
+    if(activePhase!=='TOTAL'){
+      var df=d.fase.toUpperCase();
+      var pf=activePhase.toUpperCase();
+      if(pf==='16AVOS'){if(df.indexOf('16')<0&&df.indexOf('DIECISEIS')<0&&df.indexOf('DIECISÉIS')<0)return false;}
+      else if(df.indexOf(pf)<0) return false;
+      if(activePhase==='GRUPOS'&&!inWeek(d.fecha,activeWeek)) return false;
+    }
+    if(secs&&secs.length>0&&secs.indexOf(d.sector)<0) return false;
+    if(marcas&&marcas.length>0&&marcas.indexOf(d.marca)<0) return false;
+    return true;
+  });
+}
+
+// Get rating for current target
+function getRat(d){
+  var v;
+  if(activeTarget==='Hogares') v=d.h_rat;
+  else if(activeTarget==='Total Personas') v=d.p_rat;
+  else v=d.p20_rat;
+  return v;
+}
+
+// Get share for current target
+function getShr(d){
+  var v;
+  if(activeTarget==='Hogares') v=d.h_shr;
+  else if(activeTarget==='Total Personas') v=d.p_shr;
+  else v=d.p20_shr;
+  return v;
+}
+
+// Get GRP for current target
+function getGRP(d){
+  if(activeTarget==='Hogares') return d.grp_h;
+  if(activeTarget==='Total Personas') return d.grp_p;
+  return d.grp_20;
+}
+
+function weightedAvg(rows,valFn){
+  var sv=0,sd=0;
+  rows.forEach(function(d){
+    var v=valFn(d);
+    if(v!==null&&v!==undefined&&d.duracion){sv+=v*d.duracion;sd+=d.duracion;}
+  });
+  return sd>0?sv/sd:null;
+}
+
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+function render(){
+  if(activeMainTab==='overview') renderOverview();
+  else renderMarcas();
+}
+
+function getPartidos(data){
+  var seen={},list=[];
+  data.forEach(function(d){if(d.partido&&!seen[d.partido]){seen[d.partido]=true;list.push(d.partido);}});
+  return list;
+}
+
+function shortLabel(p){
+  return p.replace(/QATAR 2022 /i,'').replace(/MUNDIAL 2026 /i,'').replace(/AMISTOSO /i,'');
+}
+
+function renderOverview(){
+  var data=getAudFiltered();
+  var partidos=getPartidos(data);
+
+  if(!data.length){
+    document.getElementById('panel-overview').innerHTML='<div class="empty-msg">Sin datos para la fase y target seleccionados.</div>';
+    return;
+  }
+
+  var labels=partidos.map(shortLabel);
+  var ratVals=[], covVals=[];
+
+  partidos.forEach(function(p){
+    var pRows=data.filter(function(d){return d.partido===p;});
+    // Weighted avg rating by duration
+    var rat=weightedAvg(pRows,getRat);
+    ratVals.push(rat!==null?+rat.toFixed(2):null);
+    // Coview always in Total Personas
+    var covRows=audData.filter(function(d){return d.partido===p;});
+    var cov=weightedAvg(covRows,function(d){return d.p_cov;});
+    covVals.push(cov!==null?+cov.toFixed(1):null);
+  });
+
+  // Coview badges
+  var badgesEl=document.getElementById('cov-badges');
+  if(badgesEl){
+    badgesEl.innerHTML='';
+    labels.forEach(function(lbl,i){
+      if(covVals[i]!==null){
+        var b=document.createElement('div');
+        b.className='cov-badge';
+        b.innerHTML=lbl.substring(0,15)+'&hellip;: <b>'+covVals[i]+'%</b>';
+        badgesEl.appendChild(b);
+      }
+    });
+  }
+
+  // CHART 1: Rating bars with labels inside
+  destroyChart('rating');
+  var ctx1=document.getElementById('chart-rating');
+  if(ctx1){
+    charts['rating']=new Chart(ctx1.getContext('2d'),{
+      type:'bar',
+      data:{
+        labels:labels,
+        datasets:[{label:'Rating%',data:ratVals,backgroundColor:'#0D1B3E',borderRadius:4}]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{
+          y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:10},color:'#4A5568',callback:function(v){return v+'%';}}},
+          x:{grid:{display:false},ticks:{font:{size:9},color:'#4A5568',maxRotation:45}}
+        },
+        animation:{onComplete:function(){
+          var ch=this,ctx=ch.ctx;
+          ctx.save();
+          ctx.font='bold 11px system-ui,sans-serif';
+          ctx.fillStyle='#fff';
+          ctx.textAlign='center';
+          ctx.textBaseline='middle';
+          ch.data.datasets.forEach(function(ds,di){
+            ch.getDatasetMeta(di).data.forEach(function(bar,i){
+              var val=ds.data[i];
+              if(val!==null&&val!==undefined&&(bar.base-bar.y)>16){
+                ctx.fillText(val+'%',bar.x,bar.y+(bar.base-bar.y)*0.5);
+              }
+            });
+          });
+          ctx.restore();
+        }}
+      }
+    });
+  }
+
+  // CHART 2: Share por señal - usa Shr% directo + Resto hasta 100%
+  // Para cada partido: Telefe Shr% + TyC Shr% + TVP Shr% + Resto = 100
+  var shrTelefe=[], shrTyC=[], shrTVP=[], shrResto=[];
+  partidos.forEach(function(p){
+    var pRows=data.filter(function(d){return d.partido===p;});
+    var st=0,sy=0,sv=0;
+    pRows.forEach(function(d){
+      var s=getShr(d);
+      if(s===null) return;
+      if(matchCanal(d.canal,'TELEFE')) st=s;
+      else if(matchCanal(d.canal,'TYC')) sy=s;
+      else if(matchCanal(d.canal,'TVP')) sv=s;
+    });
+    var total=st+sy+sv;
+    var resto=Math.max(0,+(100-total).toFixed(1));
+    shrTelefe.push(+st.toFixed(1));
+    shrTyC.push(+sy.toFixed(1));
+    shrTVP.push(+sv.toFixed(1));
+    shrResto.push(resto);
+  });
+
+  destroyChart('share');
+  var ctx2=document.getElementById('chart-share');
+  if(ctx2){
+    charts['share']=new Chart(ctx2.getContext('2d'),{
+      type:'bar',
+      data:{
+        labels:labels,
+        datasets:[
+          {label:'Telefe',    data:shrTelefe, backgroundColor:'#2563eb',borderRadius:2},
+          {label:'TyC Sports',data:shrTyC,    backgroundColor:'#16a34a',borderRadius:2},
+          {label:'TV Pública',data:shrTVP,backgroundColor:'#5BA3C9',borderRadius:2},
+          {label:'Resto Enc. Total TV',data:shrResto,backgroundColor:'#D1D5DB',borderRadius:2}
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:true,position:'top',labels:{font:{size:10},boxWidth:10,padding:10}}},
+        scales:{
+          y:{stacked:true,beginAtZero:true,max:100,ticks:{callback:function(v){return v+'%';},font:{size:10},color:'#4A5568'},grid:{color:'rgba(0,0,0,0.05)'}},
+          x:{stacked:true,grid:{display:false},ticks:{font:{size:9},color:'#4A5568',maxRotation:45}}
+        }
+      }
+    });
+  }
+}
+
+function renderMarcas(){
+  var isTotal=activePhase==='TOTAL';
+  document.getElementById('subfiltro-section').style.display=isTotal?'none':'block';
+
+  var baseMarc=getMarcFiltered(null,null);
+  var secMap={},marcMap={};
+  baseMarc.forEach(function(r){
+    var g=getGRP(r)||0;
+    if(r.sector){if(!secMap[r.sector])secMap[r.sector]={sector:r.sector,grp:0};secMap[r.sector].grp+=g;}
+    if(r.marca){
+      if(!marcMap[r.marca])marcMap[r.marca]={marca:r.marca,anunciante:r.anunciante||'',sector:r.sector||'',grp:0,ins:0};
+      marcMap[r.marca].grp+=g; marcMap[r.marca].ins+=(r.inserciones||0);
+    }
+  });
+
+  // Top sectores chart
+  var secSorted=Object.values(secMap).sort(function(a,b){return b.grp-a.grp;}).slice(0,10);
+  destroyChart('sectores');
+  var ctx3=document.getElementById('chart-sectores');
+  if(ctx3){
+    if(secSorted.length){
+      charts['sectores']=new Chart(ctx3.getContext('2d'),{
+        type:'bar',
+        data:{labels:secSorted.map(function(s){return s.sector;}),datasets:[{label:'TRPs',data:secSorted.map(function(s){return +s.grp.toFixed(1);}),backgroundColor:'#B8924A',borderRadius:4}]},
+        options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+          scales:{x:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:10}}},y:{grid:{display:false},ticks:{font:{size:10}}}}}
+      });
+    } else {
+      ctx3.parentElement.innerHTML='<div class="empty-msg">Sin datos de marcas para esta fase.</div>';
+    }
+  }
+
+  // Top marcas table (all, scrolleable)
+  var marcSorted=Object.values(marcMap).sort(function(a,b){return b.grp-a.grp;});
+  var maxG=marcSorted[0]?marcSorted[0].grp:1;
+  var tbl=document.getElementById('top-marcas-table');
+  if(tbl){
+    if(marcSorted.length){
+      var html='<table class="rank-table"><thead><tr><th>#</th><th>Marca</th><th>Sector</th><th style="min-width:70px"></th><th>TRPs</th><th>Avisos</th></tr></thead><tbody>';
+      marcSorted.forEach(function(m,i){
+        html+='<tr><td class="rank-num">'+String(i+1).padStart(2,'0')+'</td><td>'+m.marca+'</td><td style="font-size:10px;color:var(--text2)">'+m.sector+'</td>';
+        html+='<td><div class="rank-bar-wrap"><div class="rank-bar" style="width:'+Math.round(m.grp/maxG*100)+'%"></div></div></td>';
+        html+='<td style="font-weight:800;text-align:right">'+m.grp.toFixed(1)+'</td><td style="text-align:right;color:var(--text2)">'+m.ins.toFixed(0)+'</td></tr>';
+      });
+      html+='</tbody></table>';
+      tbl.innerHTML=html;
+    } else {
+      tbl.innerHTML='<div class="empty-msg">Sin datos de marcas para esta fase.</div>';
+    }
+  }
+
+  if(isTotal) return;
+
+  updateSectorDD(); updateMarcaSubDD();
+
+  var filtMarc=getMarcFiltered(selectedSectores,selectedMarcasSub);
+  var totGRP=0,totIns=0,uMarcas={};
+  filtMarc.forEach(function(r){totGRP+=(getGRP(r)||0);totIns+=(r.inserciones||0);if(r.marca)uMarcas[r.marca]=true;});
+
+  var bnEl=document.getElementById('bn-row');
+  if(bnEl) bnEl.innerHTML=
+    '<div class="bn-card"><div class="bn-label">TRPs totales</div><div class="bn-val">'+totGRP.toFixed(0)+'</div></div>'+
+    '<div class="bn-card"><div class="bn-label">Avisos totales</div><div class="bn-val">'+totIns.toFixed(0)+'</div></div>'+
+    '<div class="bn-card"><div class="bn-label">Marcas activas</div><div class="bn-val">'+Object.keys(uMarcas).length+'</div></div>';
+
+  // Ranking table filtered
+  var fm2={};
+  filtMarc.forEach(function(r){
+    var g=getGRP(r)||0;
+    if(!fm2[r.marca])fm2[r.marca]={marca:r.marca,grp:0,ins:0};
+    fm2[r.marca].grp+=g; fm2[r.marca].ins+=(r.inserciones||0);
+  });
+  var fmSorted=Object.values(fm2).sort(function(a,b){return b.grp-a.grp;});
+  var maxFG=fmSorted[0]?fmSorted[0].grp:1;
+  var rtEl=document.getElementById('ranking-marcas-table');
+  if(rtEl){
+    if(fmSorted.length){
+      var html2='<table class="rank-table"><thead><tr><th>#</th><th>Marca</th><th style="min-width:70px"></th><th>TRPs</th><th>Avisos</th></tr></thead><tbody>';
+      fmSorted.forEach(function(m,i){
+        html2+='<tr><td class="rank-num">'+String(i+1).padStart(2,'0')+'</td><td>'+m.marca+'</td>';
+        html2+='<td><div class="rank-bar-wrap"><div class="rank-bar" style="width:'+Math.round(m.grp/maxFG*100)+'%"></div></div></td>';
+        html2+='<td style="font-weight:800;text-align:right">'+m.grp.toFixed(1)+'</td><td style="text-align:right;color:var(--text2)">'+m.ins.toFixed(0)+'</td></tr>';
+      });
+      html2+='</tbody></table>'; rtEl.innerHTML=html2;
+    } else {
+      rtEl.innerHTML='<div class="empty-msg">Sin datos con los filtros aplicados.</div>';
+    }
+  }
+
+  // SOV chart: share of TRPs por marca por partido - suma 100%
+  var partidos2=getPartidos(filtMarc);
+  var marcas2=fmSorted.map(function(m){return m.marca;}).slice(0,10);
+
+  // Calculate total TRPs per partido (among selected marcas)
+  var partTotals={};
+  partidos2.forEach(function(p){
+    var t=0;
+    filtMarc.filter(function(d){return d.partido===p;}).forEach(function(r){t+=(getGRP(r)||0);});
+    partTotals[p]=t;
+  });
+
+  var sovDatasets=marcas2.map(function(marca,i){
+    return {
+      label:marca,
+      data:partidos2.map(function(p){
+        var mRows=filtMarc.filter(function(d){return d.partido===p&&d.marca===marca;});
+        var mGRP=mRows.reduce(function(s,r){return s+(getGRP(r)||0);},0);
+        var tot=partTotals[p]||1;
+        return +((mGRP/tot)*100).toFixed(1);
+      }),
+      backgroundColor:MARC_COLORS[i%MARC_COLORS.length],
+      borderRadius:2
+    };
+  });
+
+  destroyChart('sov-partido');
+  var ctx4=document.getElementById('chart-sov-partido');
+  if(ctx4){
+    if(partidos2.length&&marcas2.length){
+      charts['sov-partido']=new Chart(ctx4.getContext('2d'),{
+        type:'bar',
+        data:{labels:partidos2.map(shortLabel),datasets:sovDatasets},
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:true,position:'top',labels:{font:{size:10},boxWidth:10,padding:8}}},
+          scales:{
+            y:{stacked:true,beginAtZero:true,max:100,ticks:{callback:function(v){return v+'%';},font:{size:10}},grid:{color:'rgba(0,0,0,0.05)'}},
+            x:{stacked:true,grid:{display:false},ticks:{font:{size:9},maxRotation:45}}
+          }
+        }
+      });
+    } else {
+      ctx4.parentElement.innerHTML='<div class="empty-msg">Seleccioná marcas para ver el SOV.</div>';
+    }
+  }
+}
+
+// SECTOR DROPDOWN
+function updateSectorDD(){
+  var q=document.getElementById('sector-search').value.toUpperCase();
+  var dd=document.getElementById('sector-dropdown'); dd.innerHTML='';
+  SECTORS.filter(function(s){return s.indexOf(q)>=0&&selectedSectores.indexOf(s)<0;}).forEach(function(s){
+    var div=document.createElement('div'); div.className='dd-opt'; div.textContent=s; div.dataset.val=s; dd.appendChild(div);
+  });
+}
+document.getElementById('sector-search').addEventListener('focus',function(){updateSectorDD();document.getElementById('sector-dropdown').classList.add('show');});
+document.getElementById('sector-search').addEventListener('input',function(){updateSectorDD();document.getElementById('sector-dropdown').classList.add('show');});
+document.getElementById('sector-dropdown').addEventListener('click',function(e){
+  var opt=e.target.closest('.dd-opt');if(!opt)return;
+  selectedSectores.push(opt.dataset.val); selectedMarcasSub=[];
+  document.getElementById('sector-search').value='';
+  document.getElementById('sector-dropdown').classList.remove('show');
+  renderSectorTags(); updateMarcaSubDD(); render();
+});
+function renderSectorTags(){
+  var el=document.getElementById('sector-tags'); el.innerHTML='';
+  selectedSectores.forEach(function(s){
+    var sp=document.createElement('span'); sp.className='tag'; sp.textContent=s+' ';
+    var x=document.createElement('span'); x.textContent='x';
+    x.addEventListener('click',function(){selectedSectores.splice(selectedSectores.indexOf(s),1);renderSectorTags();updateMarcaSubDD();render();});
+    sp.appendChild(x); el.appendChild(sp);
+  });
+}
+
+// MARCA SUB DROPDOWN
+function getMarcasForSectors(){
+  var base=getMarcFiltered(selectedSectores.length?selectedSectores:null,null);
+  var set={};base.forEach(function(d){if(d.marca)set[d.marca]=true;});
+  return Object.keys(set).sort();
+}
+function updateMarcaSubDD(){
+  var q=document.getElementById('marcasub-search').value.toUpperCase();
+  var dd=document.getElementById('marcasub-dropdown'); dd.innerHTML='';
+  getMarcasForSectors().filter(function(m){return m.toUpperCase().indexOf(q)>=0&&selectedMarcasSub.indexOf(m)<0;}).slice(0,30).forEach(function(m){
+    var div=document.createElement('div'); div.className='dd-opt'; div.textContent=m; div.dataset.val=m; dd.appendChild(div);
+  });
+}
+document.getElementById('marcasub-search').addEventListener('focus',function(){updateMarcaSubDD();document.getElementById('marcasub-dropdown').classList.add('show');});
+document.getElementById('marcasub-search').addEventListener('input',function(){updateMarcaSubDD();document.getElementById('marcasub-dropdown').classList.add('show');});
+document.getElementById('marcasub-dropdown').addEventListener('click',function(e){
+  var opt=e.target.closest('.dd-opt');if(!opt)return;
+  selectedMarcasSub.push(opt.dataset.val);
+  document.getElementById('marcasub-search').value='';
+  document.getElementById('marcasub-dropdown').classList.remove('show');
+  renderMarcaSubTags(); render();
+});
+function renderMarcaSubTags(){
+  var el=document.getElementById('marcasub-tags'); el.innerHTML='';
+  selectedMarcasSub.forEach(function(m){
+    var sp=document.createElement('span'); sp.className='tag tag-g'; sp.textContent=m+' ';
+    var x=document.createElement('span'); x.textContent='x';
+    x.addEventListener('click',function(){selectedMarcasSub.splice(selectedMarcasSub.indexOf(m),1);renderMarcaSubTags();render();});
+    sp.appendChild(x); el.appendChild(sp);
+  });
+}
+
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.dd-wrap'))
+    document.querySelectorAll('.dropdown').forEach(function(d){d.classList.remove('show');});
+});
+
+// LOAD DATA
+function loadData(){
+  Papa.parse(S1,{download:true,skipEmptyLines:true,complete:function(r){
+    var hi=-1;
+    for(var i=0;i<r.data.length;i++){
+      for(var j=0;j<r.data[i].length;j++){
+        if(String(r.data[i][j]).trim().toUpperCase()==='PARTIDO'){hi=i;break;}
+      }
+      if(hi>=0)break;
+    }
+    if(hi<0){showError('No se encontro PARTIDO en Sheet 1.');return;}
+    audData=[];
+    for(var i=hi+1;i<r.data.length;i++){
+      var row=r.data[i];
+      if(!row[1]||String(row[1]).trim()==='')continue;
+      audData.push({
+        fecha:   String(row[0]||'').trim(),
+        partido: String(row[1]||'').trim(),
+        hora:    String(row[2]||'').trim(),
+        canal:   String(row[3]||'').trim(),
+        jornada: String(row[4]||'').trim(),
+        fase:    String(row[5]||'').trim().toUpperCase(),
+        h_rat:   pn(row[6]), h_shr: pn(row[7]),  h_alc: pn(row[8]),
+        p_rat:   pn(row[9]), p_shr: pn(row[10]), p_alc: pn(row[11]), p_cov: pn(row[12]),
+        p20_rat: pn(row[13]),p20_shr:pn(row[14]),p20_alc:pn(row[15]),p20_cov:pn(row[16]),
+        duracion:pn(row[17])||5400
+      });
+    }
+    loadMarcas();
+  },error:function(){showError('No se pudo cargar el Sheet de audiencia.');}});
+}
+
+function loadMarcas(){
+  Papa.parse(S2,{download:true,skipEmptyLines:true,complete:function(r){
+    var hi=-1;
+    for(var i=0;i<r.data.length;i++){
+      for(var j=0;j<r.data[i].length;j++){
+        if(String(r.data[i][j]).trim().toUpperCase()==='MARCA'){hi=i;break;}
+      }
+      if(hi>=0)break;
+    }
+    marcData=[];
+    if(hi>=0){
+      for(var i=hi+1;i<r.data.length;i++){
+        var row=r.data[i];
+        if(!row[3]||String(row[3]).trim()==='')continue;
+        marcData.push({
+          fecha:      String(row[0]||'').trim(),
+          partido:    String(row[1]||'').trim(),
+          anunciante: String(row[2]||'').trim(),
+          marca:      String(row[3]||'').trim(),
+          canal:      String(row[4]||'').trim(),
+          tipo:       String(row[5]||'').trim(),
+          sector:     String(row[6]||'').trim(),
+          jornada:    String(row[7]||'').trim(),
+          fase:       String(row[8]||'').trim().toUpperCase(),
+          grp_h:      pn(row[9]),
+          grp_p:      pn(row[10]),
+          grp_20:     pn(row[11]),
+          inserciones:pn(row[12]),
+          duracion:   pn(row[13])||5400
+        });
+      }
+    }
+    document.getElementById('loading-state').style.display='none';
+    document.getElementById('main-content').style.display='block';
+    buildPhaseButtons();
+    render();
+  },error:function(){
+    document.getElementById('loading-state').style.display='none';
+    document.getElementById('main-content').style.display='block';
+    buildPhaseButtons();
+    render();
+  }});
+}
+
+function showError(msg){
+  document.getElementById('loading-state').style.display='none';
+  document.getElementById('error-state').style.display='block';
+  document.getElementById('error-state').innerHTML='<div class="error-msg">'+msg+'</div>';
+}
+
+loadData();
+</script>
+</body>
+</html>
